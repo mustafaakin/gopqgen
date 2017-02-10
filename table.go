@@ -33,6 +33,7 @@ func getTableNames(db *sqlx.DB) ([]table, error) {
           AND n.nspname <> 'information_schema'
           AND n.nspname !~ '^pg_toast'
       AND pg_catalog.pg_table_is_visible(c.oid)
+      AND c.relkind IN ('v', 'r')
     ORDER BY 2;
   `
 
@@ -42,6 +43,7 @@ func getTableNames(db *sqlx.DB) ([]table, error) {
 }
 
 type Table struct {
+	OID    int
 	Name   string
 	Type   string
 	Fields []field
@@ -61,6 +63,7 @@ func GetTables(db *sqlx.DB) ([]Table, error) {
 		}
 
 		tbls[i] = Table{
+			OID:    tblName.OID,
 			Name:   tblName.Name,
 			Type:   tblName.Type,
 			Fields: fields,
@@ -73,17 +76,18 @@ func GetTables(db *sqlx.DB) ([]Table, error) {
 // This will require a better mechanism, how about varchar(a).. etc?
 // how are they stored? we might need regexes
 var protoFieldLookup = map[string]string{
-	"uuid":             "string",
-	"text":             "string",
-	"bytea":            "bytes",
-	"boolean":          "bool",
-	"integer":          "int32",
-	"bigint":           "int64",
-	"serial":           "int32",
-	"bigserial":        "int64",
-	"smallint":         "int32",
-	"real":             "float",
-	"double precision": "double",
+	"uuid":                        "string",
+	"text":                        "string",
+	"bytea":                       "bytes",
+	"boolean":                     "bool",
+	"integer":                     "int32",
+	"bigint":                      "int64",
+	"serial":                      "int32",
+	"bigserial":                   "int64",
+	"smallint":                    "int32",
+	"real":                        "float",
+	"double precision":            "double",
+	"timestamp without time zone": "google.protobuf.Timestamp",
 }
 
 func (t Table) toProto() string {
