@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -12,7 +11,12 @@ type enumVal struct {
 	Label     string
 }
 
-func getEnums(db *sqlx.DB) ([]string, error) {
+type Enum struct {
+	Name   string
+	Values []enumVal
+}
+
+func getEnumTypes(db *sqlx.DB) ([]string, error) {
 	var sql = `
   SELECT pg_type.typname FROM pg_type WHERE pg_type.typcategory = 'E'
   `
@@ -38,17 +42,35 @@ func getEnumVals(db *sqlx.DB, typname string) ([]enumVal, error) {
 	return enums, err
 }
 
-func prepareEnums(db *sqlx.DB) []string {
-	enums, err := getEnums(db)
+func GetEnums(db *sqlx.DB) ([]Enum, error) {
+	enumTypes, err := getEnumTypes(db)
 	if err != nil {
-		log.Fatal("Could not fetch ENUM list:", err)
+		return nil, nil
 	}
 
-	for _, enum := range enums {
-		src := newSrc(fmt.Sprintf("%s.gen.go", enum))
-		// Make it template-wise
-		src.addLine("enum hi")
+	enums := make([]Enum, len(enumTypes))
+	for i, enumType := range enumTypes {
+		values, err := getEnumVals(db, enumType)
+		if err != nil {
+			return nil, nil
+		}
+
+		enums[i] = Enum{
+			Name:   enumType,
+			Values: values,
+		}
 	}
 
-	return nil
+	return enums, nil
+}
+
+func (e Enum) toProto() string {
+	s := "enum " + e.Name + " {\n"
+	s += "  UNKNOWN = 0;\n"
+	for _, value := range e.Values {
+		s += fmt.Sprintf("  %s = %d;\n", value.Label, value.SortOrder)
+	}
+	s += "}\n"
+
+	return s
 }
