@@ -140,6 +140,27 @@ func getDefinedFuncOutputArgs(db *sqlx.DB, oid int) ([]definedFuncOutputArg, err
 		return nil, err
 	}
 
+	// Is really no output?
+	if len(outs) == 0 {
+		sql = `
+  SELECT
+    1 as arrayorder,
+    proretset as isreturnset,
+    typname as typename
+  FROM
+    pg_proc,
+    pg_type
+  WHERE
+    pg_proc.oid = $1 AND
+    pg_type.oid = prorettype
+    `
+
+		err = db.Select(&outs, sql, oid)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return outs, err
 
 }
@@ -161,12 +182,9 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 
 	fns := make([]Function, 0)
 	for _, dfn := range dfns {
-		log.Println("hi")
 		if dfn.Tip == "normal" {
-			log.Println("hi2")
-
 			fn := Function{
-				Name:       dfn.Name,
+				Name:       capitalize(dfn.Name),
 				Type:       "SELECT",
 				Inputs:     make([]InOutType, 0),
 				Outputs:    make([]InOutType, 0),

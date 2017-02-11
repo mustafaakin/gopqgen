@@ -179,7 +179,15 @@ func (s summary) generateProtoSummary() protoSummary {
 		} else if len(fn.Inputs) == 1 {
 			inputName = fn.Inputs[0].Type
 		} else {
-			inputName = "compositeInputs1"
+			inputName = fn.Name + "Arg"
+			msg := newProtoMessage(inputName)
+			for idx, inp := range fn.Inputs {
+				if inp.Name == "" {
+					inp.Name = fmt.Sprintf("var%d", idx+1)
+				}
+				msg.addField(inp.Name, inp.Type, idx+1)
+			}
+			ps.addMessage(msg)
 		}
 
 		if len(fn.Outputs) == 1 {
@@ -189,7 +197,15 @@ func (s summary) generateProtoSummary() protoSummary {
 				outputName = fn.Outputs[0].Type
 			}
 		} else {
-			outputName = "combinedTypeTODO"
+			outputName = fn.Name + "Out"
+			msg := newProtoMessage(outputName)
+			for idx, outp := range fn.Outputs {
+				if outp.Name == "" {
+					outp.Name = fmt.Sprintf("var%d", idx+1)
+				}
+				msg.addField(outp.Name, outp.Type, idx+1)
+			}
+			ps.addMessage(msg)
 		}
 
 		rpc := protoRpc{

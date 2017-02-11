@@ -26,8 +26,8 @@ go get -u github.com/mustafaakin/gopqgen
 - [X] Find enums
 - [X] List views
 - [ ] Composite types
-- [ ] Generate getters for indexes (pkey and other composite keys)
-- [ ] User defined functions
+- [X] Generate getters for indexes (pkey and other composite keys)
+- [X] User defined functions
 - [ ] Generate functions from references foreign keys
 - [ ] Update function
 - [ ] gRPC Server implementation
@@ -65,6 +65,25 @@ CREATE TABLE membership (
   courseId INT REFERENCES course(id),
   studentId INT REFERENCES student(id)
 );
+
+-- Not that you need something like it, but just imagine
+CREATE FUNCTION add(integer, integer) RETURNS integer AS
+  'select $1 + $2;' LANGUAGE SQL
+IMMUTABLE RETURNS NULL ON NULL INPUT;
+
+CREATE FUNCTION IsUserInCourse(_studentId integer, _courseid integer) RETURNS boolean AS
+  'select exists(select 1 from membership where studentId = _studentid AND courseid = _courseid)' LANGUAGE SQL;
+
+CREATE FUNCTION GetStudentsOfCourse(_courseId integer) RETURNS TABLE(name text, email text) AS
+  'SELECT s.name, s.email FROM
+    course c,
+    student s,
+    membership m
+  WHERE
+    c.id = m.courseid AND
+    s.id = m.studentid AND
+    c.id = _courseId'
+LANGUAGE SQL;
 ```
 
 gRPC Proto:
@@ -81,6 +100,13 @@ enum severity {
 }
 
 // Messages, Field Types
+message course {
+    int32 id = 1;
+    string title = 2;
+    int32 teacherid = 3;
+    severity severity = 4;
+}
+
 message membership {
     int32 courseid = 1;
     int32 studentid = 2;
@@ -99,21 +125,32 @@ message teacher {
     string name = 2;
 }
 
-message course {
-    int32 id = 1;
-    string title = 2;
-    int32 teacherid = 3;
-    severity severity = 4;
+message AddArg {
+    int32 var1 = 1;
+    int32 var2 = 2;
+}
+
+message GetstudentsofcourseOut {
+    string name = 1;
+    string email = 2;
+}
+
+message IsuserincourseArg {
+    int32 _studentid = 1;
+    int32 _courseid = 2;
 }
 
 // Service Definition
 service DatabaseService {
+    rpc GetCourseById(int32) returns (course) {}
     rpc GetTeacherById(int32) returns (teacher) {}
+    rpc Getstudentsofcourse(int32) returns (GetstudentsofcourseOut) {}
+    rpc Isuserincourse(IsuserincourseArg) returns (bool) {}
+    rpc GetStudentById(int32) returns (student) {}
     rpc ListCourse(VoidRequest) returns (stream course) {}
     rpc ListMembership(VoidRequest) returns (stream membership) {}
     rpc ListStudent(VoidRequest) returns (stream student) {}
     rpc ListTeacher(VoidRequest) returns (stream teacher) {}
-    rpc GetCourseById(int32) returns (course) {}
-    rpc GetStudentById(int32) returns (student) {}
+    rpc Add(AddArg) returns (int32) {}
 }
 ```
