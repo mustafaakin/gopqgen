@@ -2,8 +2,13 @@
 
 This project aims to generate common CRUD operations for a given PostgreSQL database and expose them as a gRPC API.
 
+## Why?
+
 - Are you tired of writing CRUD?
-- Do you realize there is actually nothing such as One-To-Many in RMDBS and all you do is deceive yourselves with Hibernate and others?
+- Do you realize there is actually nothing such as One-To-Many in RMDBS and all you do is deceive yourselves with Hibernate and others? 
+- You realize SQL is already simple enough
+- You use PostgreSQL 
+- You realize you can define functions inside DB instead of the your application code
 - How many times you debugged an ORM?
 - Do you want another micro-service to your next-gen-kubernetes-based application?
 
@@ -33,7 +38,7 @@ For given this schema, it generates an almost valid gRPC right now.
 
 SQL:
 
-```
+```sql
 CREATE TABLE student (
   id SERIAL PRIMARY KEY,
   name TEXT,
