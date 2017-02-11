@@ -7,9 +7,6 @@ import (
 
 	"log"
 
-	"encoding/json"
-	"os"
-
 	"github.com/jmoiron/sqlx"
 )
 
@@ -63,8 +60,27 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 	s.Functions = make([]Function, 0)
 	for _, table := range s.Tables {
 		for _, index := range table.Indices {
+
+			var name string
+			if index.IsUnique {
+				name = "Get"
+			} else {
+				name = "List"
+			}
+
+			name += capitalize(table.Name)
+
+			if len(index.Columns) > 0 {
+				name += "By"
+				if len(index.Columns) == 1 {
+					name += capitalize(index.Columns[0].Name)
+				} else {
+					name += capitalize(index.Name)
+				}
+			}
+
 			fn := Function{
-				Name:       index.Name,
+				Name:       name,
 				Inputs:     make([]InOutType, len(index.Columns)),
 				Outputs:    []InOutType{{Name: "output", Type: table.Name}},
 				Type:       "SELECT",
@@ -96,7 +112,7 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 	// -- The functions from table lists only
 	for _, table := range s.Tables {
 		fn := Function{
-			Name:       "List-" + table.Name,
+			Name:       "List" + capitalize(table.Name),
 			Outputs:    []InOutType{{Name: "output", Type: table.Name}},
 			Type:       "SELECT",
 			IsOutArray: true,
@@ -115,6 +131,7 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 
 	// -- The user-defined functions
 	fs, err := GetUserFunctions(db)
+
 	if err != nil {
 		log.Fatal("haydaaa", err)
 	}
@@ -172,39 +189,12 @@ func (s summary) generateProtoSummary() protoSummary {
 				outputName = fn.Outputs[0].Type
 			}
 		} else {
-			enc := json.NewEncoder(os.Stdout)
-			enc.SetIndent("", "  ")
-			enc.Encode(fn)
-			continue
-
-			log.Fatal("UKKNOWNNNN")
-		}
-
-		var name string
-		if fn.IsOutArray {
-			name = "List"
-		} else {
-			name = "Get"
-		}
-
-		if len(fn.Outputs) == 1 {
-			name += capitalize(fn.Outputs[0].Type)
-		} else {
-			log.Fatal("UUUU")
-		}
-
-		if len(fn.Inputs) > 0 {
-			name += "By"
-			if len(fn.Inputs) == 1 {
-				name += capitalize(fn.Inputs[0].Name)
-			} else {
-				name += fn.Name
-			}
+			outputName = "combinedTypeTODO"
 		}
 
 		rpc := protoRpc{
 			Function:   fn,
-			Name:       name,
+			Name:       fn.Name,
 			InputName:  inputName,
 			OutputName: outputName,
 		}

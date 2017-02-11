@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -30,6 +29,6 @@ func main() {
 	*/
 
 	ps := s.generateProtoSummary()
+	// json.NewEncoder(os.Stdout).Encode(s)
 	fmt.Println(ps)
-
 }

@@ -9,6 +9,8 @@ type messageField struct {
 }
 
 var protoFieldLookup = map[string]string{
+	"int4":                        "int32",
+	"int8":                        "int64",
 	"uuid":                        "string",
 	"text":                        "string",
 	"bytea":                       "bytes",

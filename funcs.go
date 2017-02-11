@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
+
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -45,13 +48,6 @@ type definedFunction struct {
 	Tip  string
 }
 
-type definedFunctionArg struct {
-	ArrayOrder int
-	Name       string
-	Kind       string
-	TypeName   string
-}
-
 func getDefinedFunctions(db *sqlx.DB) ([]definedFunction, error) {
 	var sql = `
 SELECT
@@ -70,41 +66,82 @@ WHERE pg_catalog.pg_function_is_visible(p.oid)
       AND n.nspname <> 'information_schema'
 ORDER BY 2
 `
-	args := make([]definedFunction, 0)
-	err := db.Select(&args, sql)
+	fns := make([]definedFunction, 0)
+	err := db.Select(&fns, sql)
 	if err != nil {
 		panic(err)
+	}
+
+	return fns, err
+}
+
+type definedFunctionInputArg struct {
+	ArrayOrder int
+	Name       *string
+	TypeName   string
+}
+
+func getDefinedFuncArgs(db *sqlx.DB, oid int) ([]definedFunctionInputArg, error) {
+	var sql = `
+SELECT
+  ArrayOrder as arrayorder,
+  proargnames[ArrayOrder] as name,
+  typname as typename
+FROM
+  pg_proc,
+  pg_type,
+  UNNEST(proargtypes) WITH ORDINALITY AS T(tag, ArrayOrder)
+WHERE
+  pg_proc.oid = $1 AND
+  pg_type.oid = tag
+ORDER BY
+  arrayorder ASC
+`
+
+	args := make([]definedFunctionInputArg, 0)
+	err := db.Select(&args, sql, oid)
+	if err != nil {
+		return nil, err
 	}
 
 	return args, err
 }
 
-func getDefinedFunctionArgs(db *sqlx.DB, oid int) ([]definedFunctionArg, error) {
-	var sql = `
-SELECT
-  ArrayOrder as arrayorder,
-  proargnames[ArrayOrder] as name,
-  CASE proargmodes[ArrayOrder]
-    WHEN 'i' THEN 'input'
-    WHEN 'o' THEN 'output'
-    WHEN 'v' THEN 'variadic'
-    WHEN 't' THEN 'table'
-  END AS kind,
-  typname as typename
-FROM
-  pg_proc,
-  pg_type,
-  UNNEST(proallargtypes) WITH ORDINALITY AS T(tag, ArrayOrder)
-WHERE
-  pg_proc.oid = $1 AND
-  pg_type.oid = tag
-ORDER BY
- arrayorder
-`
-	args := make([]definedFunctionArg, 0)
-	err := db.Select(&args, sql, oid)
+type definedFuncOutputArg struct {
+	ArrayOrder  int
+	Name        *string
+	Argmode     string
+	IsReturnSet bool
+	TypeName    string
+}
 
-	return args, err
+func getDefinedFuncOutputArgs(db *sqlx.DB, oid int) ([]definedFuncOutputArg, error) {
+	var sql = `
+  SELECT
+    ArrayOrder as arrayorder,
+    proargnames[ArrayOrder] as name,
+    proargmodes[ArrayOrder] as argmode,
+    proretset as isreturnset,
+    typname as typename
+  FROM
+    pg_proc,
+    pg_type,
+    UNNEST(proallargtypes) WITH ORDINALITY AS T(tag, ArrayOrder)
+  WHERE
+    pg_proc.oid = $1 AND
+    pg_type.oid = tag AND
+    proargmodes[ArrayOrder] IN ('t','o')
+  ORDER BY
+    arrayorder ASC`
+
+	outs := make([]definedFuncOutputArg, 0)
+	err := db.Select(&outs, sql, oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return outs, err
+
 }
 
 type Function struct {
@@ -124,50 +161,66 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 
 	fns := make([]Function, 0)
 	for _, dfn := range dfns {
+		log.Println("hi")
 		if dfn.Tip == "normal" {
-			args, err := getDefinedFunctionArgs(db, dfn.Oid)
-			if err != nil {
-				return nil, err
-			}
+			log.Println("hi2")
 
 			fn := Function{
 				Name:       dfn.Name,
 				Type:       "SELECT",
-				Query:      "SELECT",
 				Inputs:     make([]InOutType, 0),
 				Outputs:    make([]InOutType, 0),
 				IsOutArray: false,
 			}
 
-			ins := []string{}
-			outs := []string{}
-
-			log.Println(dfn)
-			log.Println(args)
-			log.Println("---")
-
-			for _, arg := range args {
-				if arg.Kind == "input" {
-					ins = append(ins, arg.Name)
-					fn.Inputs = append(fn.Inputs, InOutType{
-						Name: arg.Name,
-						Type: arg.TypeName,
-					})
-				} else if arg.Kind == "output" {
-					outs = append(outs, arg.Name)
-					fn.Outputs = append(fn.Outputs, InOutType{
-						Name: arg.Name,
-						Type: arg.TypeName,
-					})
-				} else {
-					// TODO: İS İT THOU?
-					fn.IsOutArray = true
-					fn.Outputs = append(fn.Outputs, InOutType{
-						Name: arg.Name,
-						Type: arg.TypeName,
-					})
-				}
+			// Process Input args
+			args, err := getDefinedFuncArgs(db, dfn.Oid)
+			if err != nil {
+				return nil, err
 			}
+
+			argsStr := []string{}
+			for i, arg := range args {
+				argsStr = append(argsStr, fmt.Sprintf("$%d", i+1))
+				var name string
+				if arg.Name != nil {
+					name = *(arg.Name)
+				} else {
+					name = ""
+				}
+
+				fn.Inputs = append(fn.Inputs, InOutType{
+					Name: name,
+					Type: arg.TypeName,
+				})
+			}
+
+			// Process Output args
+			outs, err := getDefinedFuncOutputArgs(db, dfn.Oid)
+			if err != nil {
+				log.Fatal(err)
+				return nil, nil
+			}
+
+			for _, out := range outs {
+				var name string
+				if out.Name != nil {
+					name = *(out.Name)
+				} else {
+					name = ""
+				}
+
+				fn.Outputs = append(fn.Outputs, InOutType{
+					Name: name,
+					Type: out.TypeName,
+				})
+			}
+
+			fn.Query = fmt.Sprintf(
+				"SELECT * FROM %s(%s)",
+				dfn.Name,
+				strings.Join(argsStr, ", "),
+			)
 
 			fns = append(fns, fn)
 		}
