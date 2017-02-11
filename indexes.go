@@ -1,41 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/jmoiron/sqlx"
 )
 
 type Index struct {
 	OID       int
 	Name      string
-	Columns   []*Column
+	Columns   []Column
 	IsUnique  bool
 	IsPrimary bool
-}
-
-func (i Index) toProto(table string) string {
-	var s = "  rpc "
-	if i.IsUnique {
-		s += "Get"
-	} else {
-		s += "List"
-	}
-
-	cols := make([]string, len(i.Columns))
-	for x, col := range i.Columns {
-		cols[x] = col.Name
-	}
-
-	var by string
-	by = strings.Join(cols, "")
-
-	s += fmt.Sprintf("%sBy%s ( %s ) returns (%s) {}\n",
-		table, by, strings.Join(cols, ", "), table,
-	)
-
-	return s
 }
 
 type Column struct {
@@ -43,7 +17,7 @@ type Column struct {
 	Typename string
 }
 
-func getIndexNames(db *sqlx.DB, oid int) ([]*Index, error) {
+func getIndexNames(db *sqlx.DB, oid int) ([]Index, error) {
 	var sql = `
 SELECT
 	idx.indexrelid as oid,
@@ -60,12 +34,12 @@ ON     ns.oid = i.relnamespace
 AND    ns.nspname = ANY(current_schemas(false))
 AND    idx.indrelid = $1
 	`
-	is := make([]*Index, 0)
+	is := make([]Index, 0)
 	err := db.Select(&is, sql, oid)
 	return is, err
 }
 
-func getIndexColumns(db *sqlx.DB, oid int) ([]*Column, error) {
+func getIndexColumns(db *sqlx.DB, oid int) ([]Column, error) {
 	var sql = `
 SELECT
   a.attname as name,
@@ -74,23 +48,23 @@ FROM pg_catalog.pg_attribute a
 WHERE a.attrelid = $1 AND a.attnum > 0 AND NOT a.attisdropped
 ORDER BY a.attnum;
 `
-	cols := make([]*Column, 0)
+	cols := make([]Column, 0)
 	err := db.Select(&cols, sql, oid)
 	return cols, err
 }
 
-func GetIndices(db *sqlx.DB, tableOid int) ([]*Index, error) {
+func GetIndices(db *sqlx.DB, tableOid int) ([]Index, error) {
 	inds, err := getIndexNames(db, tableOid)
 	if err != nil {
 		return inds, err
 	}
 
-	for _, ind := range inds {
+	for i, ind := range inds {
 		cols, err := getIndexColumns(db, ind.OID)
 		if err != nil {
 			return nil, err
 		}
-		ind.Columns = cols
+		inds[i].Columns = cols
 	}
 
 	return inds, nil

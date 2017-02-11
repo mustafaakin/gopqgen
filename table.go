@@ -1,10 +1,6 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
-)
+import "github.com/jmoiron/sqlx"
 
 type table struct {
 	OID  int
@@ -43,10 +39,11 @@ func getTableNames(db *sqlx.DB) ([]table, error) {
 }
 
 type Table struct {
-	OID    int
-	Name   string
-	Type   string
-	Fields []field
+	OID     int
+	Name    string
+	Type    string
+	Fields  []field
+	Indices []Index
 }
 
 func GetTables(db *sqlx.DB) ([]Table, error) {
@@ -71,35 +68,4 @@ func GetTables(db *sqlx.DB) ([]Table, error) {
 	}
 
 	return tbls, nil
-}
-
-// This will require a better mechanism, how about varchar(a).. etc?
-// how are they stored? we might need regexes
-var protoFieldLookup = map[string]string{
-	"uuid":                        "string",
-	"text":                        "string",
-	"bytea":                       "bytes",
-	"boolean":                     "bool",
-	"integer":                     "int32",
-	"bigint":                      "int64",
-	"serial":                      "int32",
-	"bigserial":                   "int64",
-	"smallint":                    "int32",
-	"real":                        "float",
-	"double precision":            "double",
-	"timestamp without time zone": "google.protobuf.Timestamp",
-}
-
-func (t Table) toProto() string {
-	var s = "message " + t.Name + " {\n"
-	for _, field := range t.Fields {
-		protoType, ok := protoFieldLookup[field.Type]
-		if !ok {
-			protoType = field.Type
-		}
-
-		s += fmt.Sprintf("  %s %s = %d;\n", protoType, field.Name, field.Num)
-	}
-	s += "}\n"
-	return s
 }

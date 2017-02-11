@@ -1,10 +1,6 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
-)
+import "github.com/jmoiron/sqlx"
 
 type enumVal struct {
 	SortOrder int
@@ -62,15 +58,4 @@ func GetEnums(db *sqlx.DB) ([]Enum, error) {
 	}
 
 	return enums, nil
-}
-
-func (e Enum) toProto() string {
-	s := "enum " + e.Name + " {\n"
-	s += "  UNKNOWN = 0;\n"
-	for _, value := range e.Values {
-		s += fmt.Sprintf("  %s = %d;\n", value.Label, value.SortOrder)
-	}
-	s += "}\n"
-
-	return s
 }
