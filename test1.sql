@@ -24,3 +24,22 @@ CREATE TABLE membership (
   courseId INT REFERENCES course(id),
   studentId INT REFERENCES student(id)
 );
+
+-- Not that you need something like it, but just imagine
+CREATE FUNCTION add(integer, integer) RETURNS integer AS
+  'select $1 + $2;' LANGUAGE SQL
+IMMUTABLE RETURNS NULL ON NULL INPUT;
+
+CREATE FUNCTION IsUserInCourse(_studentId integer, _courseid integer) RETURNS boolean AS
+  'select exists(select 1 from membership where studentId = _studentid AND courseid = _courseid)' LANGUAGE SQL;
+
+CREATE FUNCTION GetStudentsOfCourse(_courseId integer) RETURNS TABLE(name text, email text) AS
+  'SELECT s.name, s.email FROM
+    course c,
+    student s,
+    membership m
+  WHERE
+    c.id = m.courseid AND
+    s.id = m.studentid AND
+    c.id = _courseId'
+LANGUAGE SQL;

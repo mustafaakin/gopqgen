@@ -7,6 +7,9 @@ import (
 
 	"log"
 
+	"encoding/json"
+	"os"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -110,6 +113,13 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 		s.Functions = append(s.Functions, fn)
 	}
 
+	// -- The user-defined functions
+	fs, err := GetUserFunctions(db)
+	if err != nil {
+		log.Fatal("haydaaa", err)
+	}
+	s.Functions = append(s.Functions, fs...)
+
 	return s, nil
 }
 
@@ -162,6 +172,11 @@ func (s summary) generateProtoSummary() protoSummary {
 				outputName = fn.Outputs[0].Type
 			}
 		} else {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			enc.Encode(fn)
+			continue
+
 			log.Fatal("UKKNOWNNNN")
 		}
 
