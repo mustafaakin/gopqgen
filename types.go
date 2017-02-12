@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type messageField struct {
 	Name     string
@@ -86,9 +89,11 @@ type protoRpc struct {
 }
 
 func (pr protoRpc) String() string {
-	return fmt.Sprintf("%srpc %s(%s) returns (%s) {}\n",
+	s := fmt.Sprintf("%s// %s\n", indentation, pr.Function.Query)
+	s += fmt.Sprintf("%srpc %s(%s) returns (%s) {}\n",
 		indentation, pr.Name, getProtoFriendlyFieldName(pr.InputName), getProtoFriendlyFieldName(pr.OutputName),
 	)
+	return s
 }
 
 type protoSummary struct {
@@ -152,4 +157,9 @@ func (ps protoSummary) String() string {
 	s += "}\n"
 
 	return s
+}
+
+func (ps protoSummary) ToJSON() string {
+	b, _ := json.MarshalIndent(ps, "", "  ")
+	return string(b)
 }

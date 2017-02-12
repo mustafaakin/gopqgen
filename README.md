@@ -100,26 +100,6 @@ enum severity {
 }
 
 // Messages, Field Types
-message course {
-    int32 id = 1;
-    string title = 2;
-    int32 teacherid = 3;
-    severity severity = 4;
-}
-
-message membership {
-    int32 courseid = 1;
-    int32 studentid = 2;
-}
-
-message student {
-    int32 id = 1;
-    string name = 2;
-    string email = 3;
-    bytes password = 4;
-    int32 age = 5;
-}
-
 message teacher {
     int32 id = 1;
     string name = 2;
@@ -140,17 +120,47 @@ message IsuserincourseArg {
     int32 _courseid = 2;
 }
 
+message course {
+    int32 id = 1;
+    string title = 2;
+    int32 teacherid = 3;
+    severity severity = 4;
+}
+
+message membership {
+    int32 courseid = 1;
+    int32 studentid = 2;
+}
+
+message student {
+    int32 id = 1;
+    string name = 2;
+    string email = 3;
+    bytes password = 4;
+    int32 age = 5;
+}
+
 // Service Definition
 service DatabaseService {
-    rpc GetCourseById(int32) returns (course) {}
-    rpc GetTeacherById(int32) returns (teacher) {}
-    rpc Getstudentsofcourse(int32) returns (GetstudentsofcourseOut) {}
-    rpc Isuserincourse(IsuserincourseArg) returns (bool) {}
-    rpc GetStudentById(int32) returns (student) {}
+    // SELECT id, title, teacherid, severity FROM course
     rpc ListCourse(VoidRequest) returns (stream course) {}
-    rpc ListMembership(VoidRequest) returns (stream membership) {}
-    rpc ListStudent(VoidRequest) returns (stream student) {}
-    rpc ListTeacher(VoidRequest) returns (stream teacher) {}
+    // SELECT * FROM getstudentsofcourse($1)
+    rpc Getstudentsofcourse(int32) returns (GetstudentsofcourseOut) {}
+    // SELECT id, title, teacherid, severity FROM course WHERE `id` = $1
+    rpc GetCourseById(int32) returns (course) {}
+    // SELECT id, name, email, password, age FROM student WHERE `id` = $1
+    rpc GetStudentById(int32) returns (student) {}
+    // SELECT id, name FROM teacher WHERE `id` = $1
+    rpc GetTeacherById(int32) returns (teacher) {}
+    // SELECT * FROM add($1, $2)
     rpc Add(AddArg) returns (int32) {}
+    // SELECT * FROM isuserincourse($1, $2)
+    rpc Isuserincourse(IsuserincourseArg) returns (bool) {}
+    // SELECT courseid, studentid FROM membership
+    rpc ListMembership(VoidRequest) returns (stream membership) {}
+    // SELECT id, name, email, password, age FROM student
+    rpc ListStudent(VoidRequest) returns (stream student) {}
+    // SELECT id, name FROM teacher
+    rpc ListTeacher(VoidRequest) returns (stream teacher) {}
 }
 ```

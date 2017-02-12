@@ -93,10 +93,10 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 			// The projected fields, in index case, all fields
 			var fs = []string{}
 			for _, field := range table.Fields {
-				fs = append(fs, "`"+strings.ToLower(field.Name)+"`")
+				fs = append(fs, strings.ToLower(field.Name))
 			}
 
-			fn.Query += strings.Join(fs, ", ") + " FROM '" + strings.ToLower(table.Name) + "` WHERE "
+			fn.Query += strings.Join(fs, ", ") + " FROM " + strings.ToLower(table.Name) + " WHERE "
 			whereCasues := []string{}
 			for i, column := range index.Columns {
 				// Add to function struct
@@ -122,10 +122,10 @@ func NewSummaryFromDB(db *sqlx.DB) (*summary, error) {
 		// The projected fields, in index case, all fields
 		var fs = []string{}
 		for _, field := range table.Fields {
-			fs = append(fs, "`"+strings.ToLower(field.Name)+"`")
+			fs = append(fs, strings.ToLower(field.Name))
 		}
 
-		fn.Query += strings.Join(fs, ", ") + " FROM '" + strings.ToLower(table.Name)
+		fn.Query += strings.Join(fs, ", ") + " FROM " + strings.ToLower(table.Name)
 		s.Functions = append(s.Functions, fn)
 	}
 

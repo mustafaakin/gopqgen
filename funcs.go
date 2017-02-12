@@ -228,6 +228,11 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 					name = ""
 				}
 
+				// All outputs same, set or not-set, its enough to check only one
+				if out.IsReturnSet {
+					fn.IsOutArray = true
+				}
+
 				fn.Outputs = append(fn.Outputs, InOutType{
 					Name: name,
 					Type: out.TypeName,

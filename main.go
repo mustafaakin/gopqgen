@@ -30,5 +30,6 @@ func main() {
 
 	ps := s.generateProtoSummary()
 	// json.NewEncoder(os.Stdout).Encode(s)
+	//	fmt.Println(ps.ToJSON())
 	fmt.Println(ps)
 }
