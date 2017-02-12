@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+// Enums
+enum severity {
+    UNKNOWN = 0;
+    Easy = 1;
+    Medium = 2;
+    Hard = 3;
+}
+
+// Messages, Field Types
+message Teacher {
+    Integer Id = 1;
+    Text Name = 2;
+}
+
+message GetCourseByIdArg {
+    Integer Id = 1;
+}
+
+message GetStudentByIdArg {
+    Integer Id = 1;
+}
+
+message ListMembershipOut {
+    Membership Output = 1;
+}
+
+message GetstudentsofcourseArg {
+    Int4 _courseid = 1;
+}
+
+message IsuserincourseArg {
+    Int4 _studentid = 1;
+    Int4 _courseid = 2;
+}
+
+message AddOut {
+    Int4 Out = 1;
+}
+
+message IsuserincourseOut {
+    Bool Out = 1;
+}
+
+message VoidRes {
+}
+
+message Course {
+    Integer Id = 1;
+    Text Title = 2;
+    Integer Teacherid = 3;
+    Severity Severity = 4;
+}
+
+message Membership {
+    Integer Courseid = 1;
+    Integer Studentid = 2;
+}
+
+message GetStudentByIdOut {
+    Student Output = 1;
+}
+
+message GetTeacherByIdArg {
+    Integer Id = 1;
+}
+
+message ListCourseOut {
+    Course Output = 1;
+}
+
+message GetCourseByIdOut {
+    Course Output = 1;
+}
+
+message GetstudentsofcourseOut {
+    Text Name = 1;
+    Text Email = 2;
+}
+
+message VoidArg {
+}
+
+message Student {
+    Integer Id = 1;
+    Text Name = 2;
+    Text Email = 3;
+    Bytea Password = 4;
+    Integer Age = 5;
+}
+
+message GetTeacherByIdOut {
+    Teacher Output = 1;
+}
+
+message ListStudentOut {
+    Student Output = 1;
+}
+
+message ListTeacherOut {
+    Teacher Output = 1;
+}
+
+message AddArg {
+    Int4 Arg0 = 1;
+    Int4 Arg1 = 2;
+}
+
+// Service Definition
+service DatabaseService {
+    // SELECT id, name FROM teacher WHERE `id` = $1
+    rpc GetTeacherById(GetTeacherByIdArg) returns (GetTeacherByIdOut) {}
+    // SELECT id, title, teacherid, severity FROM course
+    rpc ListCourse(VoidArg) returns (ListCourseOut) {}
+    // SELECT id, name FROM teacher
+    rpc ListTeacher(VoidArg) returns (ListTeacherOut) {}
+    // SELECT * FROM getstudentsofcourse($1)
+    rpc Getstudentsofcourse(GetstudentsofcourseArg) returns (GetstudentsofcourseOut) {}
+    // SELECT * FROM isuserincourse($1, $2)
+    rpc Isuserincourse(IsuserincourseArg) returns (IsuserincourseOut) {}
+    // SELECT id, title, teacherid, severity FROM course WHERE `id` = $1
+    rpc GetCourseById(GetCourseByIdArg) returns (GetCourseByIdOut) {}
+    // SELECT id, name, email, password, age FROM student WHERE `id` = $1
+    rpc GetStudentById(GetStudentByIdArg) returns (GetStudentByIdOut) {}
+    // SELECT courseid, studentid FROM membership
+    rpc ListMembership(VoidArg) returns (ListMembershipOut) {}
+    // SELECT id, name, email, password, age FROM student
+    rpc ListStudent(VoidArg) returns (ListStudentOut) {}
+    // SELECT * FROM add($1, $2)
+    rpc Add(AddArg) returns (AddOut) {}
+}

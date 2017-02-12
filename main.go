@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/jmoiron/sqlx"
@@ -31,5 +30,9 @@ func main() {
 	ps := s.generateProtoSummary()
 	// json.NewEncoder(os.Stdout).Encode(s)
 	//	fmt.Println(ps.ToJSON())
-	fmt.Println(ps)
+
+	code, err := generateTemplate(ps)
+	if err != nil {
+		println(code)
+	}
 }

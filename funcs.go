@@ -201,10 +201,14 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 			for i, arg := range args {
 				argsStr = append(argsStr, fmt.Sprintf("$%d", i+1))
 				var name string
-				if arg.Name != nil {
+				if arg.Name != nil && *(arg.Name) != "" {
 					name = *(arg.Name)
 				} else {
-					name = ""
+					if len(args) > 1 {
+						name = capitalize(fmt.Sprintf("Arg%d", i))
+					} else {
+						name = "Arg"
+					}
 				}
 
 				fn.Inputs = append(fn.Inputs, InOutType{
@@ -220,12 +224,16 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 				return nil, nil
 			}
 
-			for _, out := range outs {
+			for idx, out := range outs {
 				var name string
-				if out.Name != nil {
+				if out.Name != nil && *(out.Name) != "" {
 					name = *(out.Name)
 				} else {
-					name = ""
+					if len(outs) > 1 {
+						name = capitalize(fmt.Sprintf("Out%d", idx))
+					} else {
+						name = "Out"
+					}
 				}
 
 				// All outputs same, set or not-set, its enough to check only one
@@ -239,6 +247,7 @@ func GetUserFunctions(db *sqlx.DB) ([]Function, error) {
 				})
 			}
 
+			// TODO: Fix *, if no args use *, if some args make them explicit
 			fn.Query = fmt.Sprintf(
 				"SELECT * FROM %s(%s)",
 				dfn.Name,

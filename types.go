@@ -56,15 +56,15 @@ func (m protoMessage) String() string {
 
 func (p *protoMessage) addField(name, typename string, index int) {
 	p.Fields = append(p.Fields, messageField{
-		Name:     name,
-		Typename: typename,
+		Name:     capitalize(name),
+		Typename: capitalize(typename),
 		Index:    index,
 	})
 }
 
 func newProtoMessage(name string) protoMessage {
 	return protoMessage{
-		Name:   name,
+		Name:   capitalize(name),
 		Fields: make([]messageField, 0),
 	}
 }
@@ -124,6 +124,16 @@ func (ps *protoSummary) addEnum(enum protoEnum) bool {
 	}
 	ps.Enums[enum.Name] = enum
 	return true
+}
+
+func (ps *protoSummary) containsMessageOrEnum(key string) bool {
+	if _, ok := ps.Msgs[key]; ok {
+		return true
+	}
+	if _, ok := ps.Enums[key]; ok {
+		return true
+	}
+	return false
 }
 
 func (ps *protoSummary) addMessage(msg protoMessage) bool {

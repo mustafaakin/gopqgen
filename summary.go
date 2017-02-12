@@ -147,6 +147,12 @@ func capitalize(s string) string {
 func (s summary) generateProtoSummary() protoSummary {
 	ps := newProtoSummary()
 
+	// The placeholder VoidArg and VoidRes because gRPC does not support no arguments
+	voidArg := newProtoMessage("VoidArg")
+	ps.addMessage(voidArg)
+	voidRes := newProtoMessage("VoidRes")
+	ps.addMessage(voidRes)
+
 	// Enums are independent, they are first
 	for _, enum := range s.Enums {
 		ps.addEnum(protoEnum(enum))
@@ -174,10 +180,9 @@ func (s summary) generateProtoSummary() protoSummary {
 
 	for _, fn := range s.Functions {
 		var inputName, outputName string
+		// Process inputs
 		if fn.Inputs == nil {
-			inputName = "VoidRequest"
-		} else if len(fn.Inputs) == 1 {
-			inputName = fn.Inputs[0].Type
+			inputName = "VoidArg"
 		} else {
 			inputName = fn.Name + "Arg"
 			msg := newProtoMessage(inputName)
@@ -190,13 +195,8 @@ func (s summary) generateProtoSummary() protoSummary {
 			ps.addMessage(msg)
 		}
 
-		if len(fn.Outputs) == 1 {
-			if fn.IsOutArray {
-				outputName = "stream " + fn.Outputs[0].Type
-			} else {
-				outputName = fn.Outputs[0].Type
-			}
-		} else {
+		// Process outputs
+		if len(fn.Outputs) > 0 {
 			outputName = fn.Name + "Out"
 			msg := newProtoMessage(outputName)
 			for idx, outp := range fn.Outputs {
@@ -206,6 +206,8 @@ func (s summary) generateProtoSummary() protoSummary {
 				msg.addField(outp.Name, outp.Type, idx+1)
 			}
 			ps.addMessage(msg)
+		} else {
+			outputName = "VoidRes"
 		}
 
 		rpc := protoRpc{
